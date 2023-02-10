@@ -1,95 +1,84 @@
 <?php
-  function map($items, $func) {
-    $results = [];
-    foreach($items as $item) {
-        $results[] = $func($item);
-    }
-    return $results;
-  }
 
-  function filter($items, $func) {
-    $result = [];
-    foreach ($items as $item) {
-        if ($func($item)) {
-            $result[] = $item;
+  include('Arr.php');
+
+  class Collection implements ArrayAccess, Countable
+  {
+      protected $items;
+
+      public function __construct($items) {
+          $this->items = $items;
+      }
+
+      public function offsetExists($key): bool
+      {
+          return array_key_exists($key, $this->items);
+      }
+
+      public function offsetGet($offset)
+      {
+        return $this->items[$offset];
+      }
+
+      public function offsetSet($offset, $value): void
+      {
+          if ($offset === null) {
+              $this->items[] = $value;
+          } else {
+              $this->items[$offset] = $value;
+          }
+      }
+
+      public function offsetUnset($offset): void
+      {
+          unset($this->items[$offset]);
+      }
+
+      public function count(): int
+      {
+        return count($this->items);
+      }
+
+      public static function make($items) {
+          return new static($items);
+      }
+
+      public function map($callback) {
+          return new static(array_map($callback, $this->items));
+      }
+
+      public function filter($callback) {
+          return new static(array_filter( $this->items, $callback));
+      }
+
+      public function all() {
+        return $this->items;
+      }
+
+      public function collapse() {
+        return new static(Arr::collapse($this->items));
+      }
+
+      public function toArray() {
+          return $this->items;
+      }
+
+      public function reduce($callback, $initial) {
+        $accumulator = $initial;
+        foreach($this->items as $item) {
+            $accumulator = $callback($accumulator, $item);
         }
-    }
-    return $result;
+    
+        return $accumulator;
+      }
+    
+      public function sum ($callback) {
+        
+          return $this->reduce(function ($total, $item) use ($callback) {
+              return $total + $callback($item);
+          }, 0);
+      }
   }
 
-  function reduce($items, $callback, $initial) {
-    $accumulator = $initial;
-    foreach($items as $item) {
-        $accumulator = $callback($accumulator, $item);
-    }
 
-    return $accumulator;
-  }
 
-  function sum ($items, $callback) {
-      return reduce($items, function ($total, $item) use ($callback) {
-          return $total + $callback($item);
-      }, 0);
-  }
-
-  function myJoin($items, $callback) {
-    return reduce($items, function ($string, $item) use($callback) {
-        return $string . $callback($item);
-    }, '');
-  }
-
-  $customers = [
-    ['name' => "Bob", "email" => 'bob@g.com'],
-    ['name' => "Alice", "email" => 'alice@g.com'],
-    ['name' => "Kyaw", "email" => 'kyaw@g.com'],
-    ['name' => "May", "email" => 'may@g.com'],
-    ['name' => "Zaw", "email" => 'zaw@g.com'],
-  ];
-
-  $inventoryItems = [
-    ['productName' => "Apple", 'quantity' => '3', 'price' => 10],
-    ['productName' => "Banana", 'quantity' => '7', 'price' => 24],
-    ['productName' => "Orange", 'quantity' => '9', 'price' => 19],
-    ['productName' => "Bread", 'quantity' => '14', 'price' => 8],
-    ['productName' => "Rice", 'quantity' => '2', 'price' => 27],
-  ];
-
-  $products = [
-    ['productName' => "Apple", 'isOutOfStock' => false, 'price' => 10],
-    ['productName' => "Banana", 'isOutOfStock' => true, 'price' => 24],
-    ['productName' => "Orange", 'isOutOfStock' => false, 'price' => 19],
-    ['productName' => "Bread", 'isOutOfStock' => true, 'price' => 8],
-    ['productName' => "Rice", 'isOutOfStock' => false, 'price' => 27],
-  ];
-
-  $customerEmails = map($customers, function($customer) {
-    return $customer['email'];
-  });
-
-  $outOfStockProducts = filter($products, function ($product) {
-    return $product['isOutOfStock'];
-  });
-
-  $totalPrice = reduce($products, function($total, $product) {
-    return $total + $product['price'];
-  }, 0);
-
-  $totalPriceSum = sum($products, function($product) {
-      return $product['price'];
-  });
-
-  $bcc = reduce($customers, function($result, $customer) {
-    return $result . $customer['email'] . ', ';
-  }, '');
-
-  $bccJoin = myJoin($customers, function($customer) {
-    return $customer['email'] . ', ';
-  });
-
-  ?>
-
-  <pre>
-    <?php
-      var_dump($customerEmails);
-    ?>
-  </pre>

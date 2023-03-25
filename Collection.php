@@ -78,6 +78,11 @@
               return $total + $callback($item);
           }, 0);
       }
+
+      public function last(callable $callback = null, $default = null)
+      {
+        return Arr::last($this->items, $callback, $default);
+      }
   }
 
 

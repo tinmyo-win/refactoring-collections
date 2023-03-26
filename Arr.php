@@ -2,52 +2,60 @@
 
 class Arr
 {
-  public static function collapse($array)
-  {
+    public static function collapse($array)
+    {
 
-      $results = [];
+        $results = [];
 
-      foreach ($array as $values) {
-          if ($values instanceof Collection) {
-              echo "Collection";
-              $values = $values->all();
-          } elseif (! is_array($values)) {
-              echo "Not Array";
-              continue;
-          }
-          $results[] = $values;
-      }
-
-      return array_merge([], ...$results);
-  }
-
-  public static function first($array, callable $callback = null, $default = null)
-  {
-    if(is_null($callback)) {
-        if(empty($array)) {
-            return $default;
+        foreach ($array as $values) {
+            if ($values instanceof Collection) {
+                echo "Collection";
+                $values = $values->all();
+            } elseif (!is_array($values)) {
+                echo "Not Array";
+                continue;
+            }
+            $results[] = $values;
         }
 
-        foreach ($array as $item) {
-            return $item;
-        }
+        return array_merge([], ...$results);
     }
 
-    foreach ($array as $key => $value) {
-        if($callback($value, $key)) {
-            return $value;
+    public static function first($array, callable $callback = null, $default = null)
+    {
+        if (is_null($callback)) {
+            if (empty($array)) {
+                return $default;
+            }
+
+            foreach ($array as $item) {
+                return $item;
+            }
         }
+
+        foreach ($array as $key => $value) {
+            if ($callback($value, $key)) {
+                return $value;
+            }
+        }
+
+        return $default;
     }
 
-    return $default;
-  }
+    public static function last($array, callable $callback = null, $default = null)
+    {
+        if (is_null($callback)) {
+            return empty($array) ? $default : end($array);
+        }
 
-  public static function last($array, callable $callback = null, $default = null)
-  {
-      if (is_null($callback)) {
-          return empty($array) ? $default : end($array);
-      }
+        return static::first(array_reverse($array, true), $callback, $default);
+    }
 
-      return static::first(array_reverse($array, true), $callback, $default);
-  }
+    public static function map(array $array, callable $callback)
+    {
+        $keys = array_keys($array);
+        $items = array_map($callback, $array, $keys);
+        
+        return array_combine($keys, $items);
+    }
 }

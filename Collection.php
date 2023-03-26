@@ -44,7 +44,7 @@
       }
 
       public function map($callback) {
-          return new static(array_map($callback, $this->items));
+          return new static(Arr::map($this->items, $callback));
       }
 
       public function filter($callback) {
@@ -72,8 +72,10 @@
         return $accumulator;
       }
     
-      public function sum ($callback) {
-        
+      public function sum ($callback = null) {
+        if(is_null($callback)) {
+            $callback = $this->identity();
+        }
           return $this->reduce(function ($total, $item) use ($callback) {
               return $total + $callback($item);
           }, 0);
@@ -82,6 +84,23 @@
       public function last(callable $callback = null, $default = null)
       {
         return Arr::last($this->items, $callback, $default);
+      }
+
+      public function reverse()
+      {
+        return new static(array_reverse($this->items, true));
+      }
+
+      public function values() 
+      {
+        return new static(array_values($this->items));
+      }
+
+      protected function identity()
+      {
+        return function ($value) {
+            return $value;
+        };
       }
   }
 

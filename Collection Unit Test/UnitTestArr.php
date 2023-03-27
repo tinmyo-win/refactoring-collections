@@ -1,5 +1,7 @@
 <?php
 
+use function PHPSTORM_META\type;
+
 include('../Arr.php');
 include('Aspect.php');
 
@@ -43,14 +45,20 @@ class TestArr
 
   private function areArraysEqual($array1, $array2)
   {
-    if (count($array1) !== count($array2)) {
+    if (count($array1) !== count($array2) || $this->isAssoc($array1) !== $this->isAssoc($array2)) {
       return false;
     }
-    
-    if(json_encode($array1) === json_encode($array2)) return true;
+
+    if ((string) json_encode($array1) === (string) json_encode($array2)) return true;
 
     $diff = array_diff($array1, $array2);
     return empty($diff);
+  }
+
+  private function isAssoc(array $arr)
+  {
+    if (array() === $arr) return false;
+    return array_keys($arr) !== range(0, count($arr) - 1);
   }
 
 
@@ -110,21 +118,61 @@ class TestArr
     });
     $this->arrayAssertEqual($resultValue, $expectValue);
 
-    $resultValueWithKeys = $arr->map($grades, function($value, $key) {
+    $resultValueWithKeys = $arr->map($grades, function ($value, $key) {
       return [$key + 10 => $value + 10];
     });
     $expectValueWithKeys = [];
-    foreach($grades as $key => $grade) {
-      $expectValueWithKeys [] = [$key + 10 => $grade + 10];
+    foreach ($grades as $key => $grade) {
+      $expectValueWithKeys[] = [$key + 10 => $grade + 10];
     }
     $this->arrayAssertEqual($resultValueWithKeys, $expectValueWithKeys);
 
     $emptyArr = [];
-    $resultValueWhenNull = $arr->map($emptyArr, function($value, $key) {
+    $resultValueWhenNull = $arr->map($emptyArr, function ($value, $key) {
       return [$key + 10 => $value + 10];
     });
     $expectValueWhenNull = [];
     $this->arrayAssertEqual($resultValueWhenNull, $expectValueWhenNull);
+  }
+
+  public function testArrPluck()
+  {
+    $developers = array(
+      array("developer" => array("id" => 1, "name" => "Taylor")),
+      array("developer" => array("id" => 2, "name" => "Abigail")),
+      array("developer" => array("id" => 3, "name" => "Eric")),
+      array("developer" => array("id" => 4, "name" => "Samantha")),
+      array("developer" => array("id" => 5, "name" => "Matthew")),
+      array("developer" => array("id" => 6, "name" => "Olivia")),
+      array("developer" => array("id" => 7, "name" => "William")),
+      array("developer" => array("id" => 8, "name" => "Sophia")),
+      array("developer" => array("id" => 9, "name" => "Michael")),
+      array("developer" => array("id" => 10, "name" => "Isabella"))
+    );
+
+    $arr = new Arr();
+
+    $expectValue = [];
+    foreach ($developers as $developer) {
+      $expectValue[] = $developer["developer"]["name"];
+    }
+    $resultValue = $arr->pluck($developers, "developer.name");
+    $this->arrayAssertEqual($resultValue, $expectValue);
+
+    $expectValueWithKey = [];
+    foreach ($developers as $developer) {
+      $expectValueWithKey[$developer["developer"]["id"]] = $developer["developer"]["name"];
+    }
+    $resultValueWithKey = $arr->pluck($developers, "developer.name", "developer.id");
+    $this->arrayAssertEqual($resultValueWithKey, $expectValueWithKey);
+
+    $expectValueWhenPlucklWrongWord = [];
+    for($i = 0 ; $i < count($developers); $i++) {
+      $expectValueWhenPlucklWrongWord[] = null;
+    }
+    $resultValueWhenPluckWrongWord = $arr->pluck($developers, "developer.namename");
+    $this->arrayAssertEqual($resultValueWhenPluckWrongWord, $expectValueWhenPlucklWrongWord);
+
   }
 }
 
@@ -136,3 +184,4 @@ $testProxyArr = new Proxy($testArr, $aspect);
 $testProxyArr->testRetreiveFirstElement();
 $testProxyArr->testRetreiveLastElement();
 $testProxyArr->testArrMap();
+$testProxyArr->testArrPluck();

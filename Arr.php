@@ -1,7 +1,23 @@
 <?php
 
+include('helpers.php');
+
 class Arr
 {
+    public static function accessible($value)
+    {
+        return is_array($value) || $value instanceof ArrayAccess;
+    }
+
+    public static function exists($array, $key)
+    {
+        if ($array instanceof ArrayAccess) {
+            return $array->offsetExists($key);
+        }
+
+        return array_key_exists($key, $array);
+    }
+
     public static function collapse($array)
     {
 
@@ -57,5 +73,42 @@ class Arr
         $items = array_map($callback, $array, $keys);
         
         return array_combine($keys, $items);
+    }
+
+    public static function pluck(array $array, $value, $key = null) {
+
+        [$value, $key] = static::explodePluckParameters($value, $key);
+
+        $results = [];
+
+        [$value, $key] = static::explodePluckParameters($value, $key);
+
+        foreach ($array as $item) {
+            $itemValue = data_get($item, $value);
+
+            if (is_null($key)) {
+                $results[] = $itemValue;
+            } else {
+                $itemKey = data_get($item, $key);
+
+                if (is_object($itemKey) && method_exists($itemKey, '__toString')) {
+                    $itemKey = (string) $itemKey;
+                }
+
+                $results[$itemKey] = $itemValue;
+            }
+        }
+
+        return $results;
+        
+    }
+
+    public static function explodePluckParameters($value, $key)
+    {
+        $value = is_string($value) ? explode('.', $value) : $value;
+
+        $key = is_null($key) || is_array($key) ? $key : explode('.', $key);
+
+        return [$value, $key];
     }
 }

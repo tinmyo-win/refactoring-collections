@@ -102,6 +102,20 @@
             return $value;
         };
       }
+
+      public function pluck($value, $key = null)
+      {
+        return new static(Arr::pluck($this->items, $value, $key));
+      }
+
+      public function get($key, $default = null)
+      {
+        if (array_key_exists($key, $this->items)) {
+          return $this->items[$key];
+        }
+
+        return value($default);
+      }
   }
 
 

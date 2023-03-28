@@ -1,45 +1,51 @@
 <?php
 
-function githubScore($username)
+include('Collection.php');
+
+class GithubScore
 {
-  $opts = [
-    'http' => [
-      'method' => 'GET',
-      'header' => [
-        'User-Agent: PHP'
+  private $username;
+
+  private function __construct($username)
+  {
+    $this->username = $username;
+  }
+
+  public static function forUser($username)
+  {
+    return (new self($username))->score();
+  }
+
+  private function score()
+  {
+    return $this->events()->pluck('type')->map(function($eventType) {
+      return $this->lookupScore($eventType);
+    })->sum();
+  }
+
+  private function events()
+  {
+    $opts = [
+      'http' => [
+        'method' => 'GET',
+        'header' => [
+          'User-Agent: PHP'
+        ]
       ]
-    ]
-  ];
-  $context = stream_context_create($opts);
-  $url = "https://api.github.com/users/{$username}/events";
-  $events = json_decode(file_get_contents($url, false, $context), true);
-
-  $eventTypes = [];
-  foreach ($events as $event) {
-    $eventTypes[] = $event['type'];
+    ];
+    $context = stream_context_create($opts);
+    $url = "https://api.github.com/users/{$this->username}/events";
+    return Collection::make(json_decode(file_get_contents($url, false, $context), true));
   }
 
-  $score = 0;
-  foreach ($eventTypes as $eventType) {
-    switch ($eventType) {
-      case 'PushEvent':
-        $score += 5;
-        break;
-      case 'CreateEvent':
-        $score += 4;
-        break;
-      case 'IssuesEvent':
-        $score += 3;
-        break;
-      case 'CommitCommentEvent':
-        $score += 2;
-        break;
-      default:
-        $score += 1;
-        break;
-    }
+  private function lookupScore($eventType) {
+    return collect([
+      'PushEvent' => 5,
+      'CreateEvent' => 4,
+      'IssuesEvent' => 3,
+      'CommitCommentEvent' => 2,
+    ])->get($eventType, 1);
   }
-  return $score;
 }
 
-echo "My Github Score => " . githubScore("tinmyo-win");
+echo "My Github Score => " . GithubScore::forUser('tinmyo-win');

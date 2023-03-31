@@ -6,7 +6,7 @@ class Collection implements ArrayAccess, Countable
 {
   protected $items;
 
-  public function __construct($items)
+  public function __construct($items = [])
   {
     $this->items = $items;
   }
@@ -70,7 +70,7 @@ class Collection implements ArrayAccess, Countable
     return $this->items;
   }
 
-  public function reduce($callback, $initial)
+  public function reduce($callback, $initial = null)
   {
     $accumulator = $initial;
     foreach ($this->items as $item) {
@@ -140,5 +140,153 @@ class Collection implements ArrayAccess, Countable
     }
 
     return implode($value ?? '', $this->items);
+  }
+
+  public function sortBy($callback, $options = SORT_REGULAR, $descending = false)
+  {
+    if (is_array($callback) && !is_callable($callback)) {
+      return $this->sortByMany($callback);
+    }
+
+    $results = [];
+
+    $callback = $this->valueRetriever($callback);
+
+    foreach ($this->items as $key => $value) {
+      $results[$key] = $callback($value, $key);
+    }
+
+    $descending ? arsort($results, $options)
+      : asort($results, $options);
+
+    foreach (array_keys($results) as $key) {
+      $results[$key] = $this->items[$key];
+    }
+
+    return new static($results);
+  }
+
+  protected function sortByMany(array $comparisons = [])
+  {
+    $items = $this->items;
+
+    usort($items, function ($a, $b) use ($comparisons) {
+      foreach ($comparisons as $comparison) {
+        $comparison = Arr::wrap($comparison);
+
+        $prop = $comparison[0];
+
+        $ascending = Arr::get($comparison, 1, true) === true ||
+          Arr::get($comparison, 1, true) === 'asc';
+
+        $result = 0;
+
+        if (!is_string($prop) && is_callable($prop)) {
+          $result = $prop($a, $b);
+        } else {
+          $values = [data_get($a, $prop), data_get($b, $prop)];
+
+          if (!$ascending) {
+            $values = array_reverse($values);
+          }
+
+          $result = $values[0] <=> $values[1];
+        }
+
+        if ($result === 0) {
+          continue;
+        }
+
+        return $result;
+      }
+    });
+
+    return new static($items);
+  }
+
+  protected function valueRetriever($value)
+  {
+    if ($this->useAsCallable($value)) {
+      return $value;
+    }
+
+    return function ($item) use ($value) {
+      return data_get($item, $value);
+    };
+  }
+
+  protected function useAsCallable($value)
+  {
+    return !is_string($value) && is_callable($value);
+  }
+
+  public function sortByDesc($callback, $options = SORT_REGULAR)
+  {
+    return $this->sortBy($callback, $options, true);
+  }
+
+  public function zip(array $items)
+  {
+    $arrayableItems = array_map(function ($items) {
+      return $items;
+    }, func_get_args());
+
+    $params = array_merge([function () {
+      return new static(func_get_args());
+    }, $this->items], $arrayableItems);
+
+    return new static(array_map(...$params));
+  }
+
+  public function groupBy($groupBy, $preserveKeys = false)
+  {
+    if (!$this->useAsCallable($groupBy) && is_array($groupBy)) {
+      $nextGroups = $groupBy;
+
+      $groupBy = array_shift($nextGroups);
+    }
+
+    $groupBy = $this->valueRetriever($groupBy);
+
+    $results = [];
+
+    foreach ($this->items as $key => $value) {
+      $groupKeys = $groupBy($value, $key);
+
+      if (!is_array($groupKeys)) {
+        $groupKeys = [$groupKeys];
+      }
+
+      foreach ($groupKeys as $groupKey) {
+        $groupKey = is_bool($groupKey) ? (int) $groupKey : $groupKey;
+
+        if (!array_key_exists($groupKey, $results)) {
+          $results[$groupKey] = new static;
+        }
+
+        $results[$groupKey]->offsetSet($preserveKeys ? $key : null, $value);
+      }
+    }
+
+    $result = new static($results);
+
+    if (!empty($nextGroups)) {
+      return $result->groupBy($nextGroups, $preserveKeys);
+    }
+
+    return $result;
+  }
+
+  public function min($callback = null)
+  {
+      $callback = $this->valueRetriever($callback);
+
+      return $this->map(function ($value) use ($callback) {
+          return $callback($value);
+      })->filter(function ($value) {
+          return ! is_null($value);
+      })->reduce(function ($result, $value) {
+          return is_null($result) || $value < $result ? $value : $result;
+      });
   }
 }

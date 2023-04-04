@@ -174,6 +174,19 @@ class TestArr
     $this->arrayAssertEqual($resultValueWhenPluckWrongWord, $expectValueWhenPlucklWrongWord);
 
   }
+
+  public function testArrGet()
+  {
+    $items = ['products' => [
+        'desk' => ['price' => 100],
+        'table' => ['price' => 250],
+      ]];
+
+    $expectValue = ['price' => 100];
+    $resultValue = Arr::get($items, 'products.desk');
+    $this->arrayAssertEqual($resultValue, $expectValue);
+
+  }
 }
 
 $testArr = new TestArr();
@@ -185,3 +198,4 @@ $testProxyArr->testRetreiveFirstElement();
 $testProxyArr->testRetreiveLastElement();
 $testProxyArr->testArrMap();
 $testProxyArr->testArrPluck();
+$testProxyArr->testArrGet();

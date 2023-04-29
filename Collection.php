@@ -279,14 +279,39 @@ class Collection implements ArrayAccess, Countable
 
   public function min($callback = null)
   {
-      $callback = $this->valueRetriever($callback);
+    $callback = $this->valueRetriever($callback);
 
-      return $this->map(function ($value) use ($callback) {
-          return $callback($value);
-      })->filter(function ($value) {
-          return ! is_null($value);
-      })->reduce(function ($result, $value) {
-          return is_null($result) || $value < $result ? $value : $result;
-      });
+    return $this->map(function ($value) use ($callback) {
+      return $callback($value);
+    })->filter(function ($value) {
+      return !is_null($value);
+    })->reduce(function ($result, $value) {
+      return is_null($result) || $value < $result ? $value : $result;
+    });
+  }
+
+  public function only($keys)
+  {
+    if (is_null($keys)) {
+      return new static($this->items);
+    }
+
+    $keys = is_array($keys) ? $keys : func_get_args();
+
+    return new static(Arr::only($this->items, $keys));
+  }
+
+  public function transpose()
+  {
+    $values = array_values($this->items);
+    $transposed = array_map(function(...$item) {
+      var_dump($item);
+      exit;
+      return $item;
+    }, ...$values);
+    var_dump(...$values);
+    exit;
+
+    return new static($items);
   }
 }

@@ -1,9 +1,12 @@
 <?php
 
 include('Arr.php');
+include('./Traits/Microable.php');
 
 class Collection implements ArrayAccess, Countable
 {
+  use Macroable;
+  
   protected $items;
 
   public function __construct($items = [])
@@ -305,13 +308,9 @@ class Collection implements ArrayAccess, Countable
   {
     $values = array_values($this->items);
     $transposed = array_map(function(...$item) {
-      var_dump($item);
-      exit;
       return $item;
     }, ...$values);
-    var_dump(...$values);
-    exit;
 
-    return new static($items);
+    return new static($transposed);
   }
 }
